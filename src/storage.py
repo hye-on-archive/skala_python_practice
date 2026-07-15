@@ -31,6 +31,29 @@ def models_to_dataframe(records: list[BaseModel]) -> pd.DataFrame:
     return pd.DataFrame([r.model_dump() for r in records])
 
 
+def warmup_io_engines(out_dir: Path) -> None:
+    """CSV/Parquet 벤치마크를 실행하기 전에 한 번 호출한다.
+
+    프로세스에서 pandas.to_parquet()를 처음 호출하면 pyarrow 라이브러리
+    로딩·메모리풀/코덱 초기화 등 "콜드 스타트" 비용이 몇 ms~수십 ms 더 붙는다.
+    이 비용이 실제 벤치마크 타이밍에 섞이면 포맷 간 공정한 비교가 안 되므로,
+    더미 데이터로 미리 한 번 쓰고 읽어서 라이브러리를 예열(warm-up)해 둔다.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    dummy = pd.DataFrame({"a": [1, 2, 3], "b": [1.1, 2.2, 3.3]})
+
+    tmp_csv = out_dir / ".warmup.csv"
+    tmp_parquet = out_dir / ".warmup.parquet"
+
+    dummy.to_csv(tmp_csv, index=False)
+    pd.read_csv(tmp_csv)
+    dummy.to_parquet(tmp_parquet, index=False)
+    pd.read_parquet(tmp_parquet)
+
+    tmp_csv.unlink(missing_ok=True)
+    tmp_parquet.unlink(missing_ok=True)
+
+
 def save_and_benchmark(
     df: pd.DataFrame, out_dir: Path, base_name: str
 ) -> list[IOBenchmark]:

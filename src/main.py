@@ -18,6 +18,7 @@ from src.storage import (
     save_and_benchmark,
     save_meta_json,
     simulate_large_dataset,
+    warmup_io_engines,
 )
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -89,6 +90,9 @@ async def run_pipeline() -> None:
     _section("3) CSV · Parquet 저장 및 성능 비교")
 
     if weather_records:
+        # pyarrow 최초 로딩 비용이 첫 벤치마크 타이밍에 섞이지 않도록 예열
+        warmup_io_engines(DATA_DIR)
+
         df = models_to_dataframe(weather_records)
 
         benchmarks = save_and_benchmark(df, DATA_DIR, "weather")
