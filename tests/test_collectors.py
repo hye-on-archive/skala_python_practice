@@ -15,7 +15,10 @@ def _mock_handler(request: httpx.Request) -> httpx.Response:
     if url.startswith(OPEN_METEO_URL.split("?")[0]):
         return httpx.Response(200, json={"hourly": {"time": [], "temperature_2m": [], "precipitation_probability": []}})
     if url.startswith(RESTCOUNTRIES_URL):
-        return httpx.Response(200, json=[])
+        # countries.dev/alpha/{code}는 국가 리스트가 아니라 단일 국가 객체를 반환한다.
+        return httpx.Response(200, json={"name": "Korea (Republic of)", "capital": "Seoul",
+                                          "region": "Asia", "population": 51780579,
+                                          "area": 100210, "alpha2Code": "KR"})
     if url.startswith(IP_API_URL):
         return httpx.Response(200, json={"query": "8.8.8.8"})
     return httpx.Response(404)

@@ -17,49 +17,16 @@ def test_extract_weather_records_filters_invalid_rows():
 
 
 def test_extract_korea_country_found():
-    raw = [
-        {"name": "Japan", "alpha2Code": "JP", "capital": "Tokyo", "region": "Asia",
-         "population": 125800000, "area": 377975.0},
-        {"name": "Korea (Republic of)", "alpha2Code": "KR", "capital": "Seoul",
-         "region": "Asia", "population": 51780579, "area": 100210.0},
-    ]
-    country, errors = extract_korea_country(raw)
-    assert country is not None
-    assert country.alpha2_code == "KR"
-    assert errors == []
-
-
-def test_extract_korea_country_not_found():
-    raw = [{"name": "Japan", "alpha2Code": "JP", "capital": "Tokyo",
-            "region": "Asia", "population": 1, "area": 1.0}]
-    country, errors = extract_korea_country(raw)
-    assert country is None
-    assert len(errors) == 1
-
-
-def test_extract_korea_country_handles_dict_top_level():
-    # 일부 restcountries 미러는 list가 아니라 {코드/이름/인덱스: 국가객체} 형태의
-    # dict로 감싸서 제공한다. 이 경우에도 정상적으로 찾아야 한다.
+    # countries.dev/alpha/KOR 실제 응답 예시(필요 필드만 발췌)
     raw = {
-        "0": {"name": "Japan", "alpha2Code": "JP", "capital": "Tokyo",
-              "region": "Asia", "population": 1, "area": 1.0},
-        "1": {"name": "Korea (Republic of)", "alpha2Code": "KR", "capital": "Seoul",
-              "region": "Asia", "population": 51780579, "area": 100210.0},
+        "name": "Korea (Republic of)",
+        "capital": "Seoul",
+        "region": "Asia",
+        "population": 51780579,
+        "area": 100210,
+        "alpha2Code": "KR",
+        "alpha3Code": "KOR",
     }
-    country, errors = extract_korea_country(raw)
-    assert country is not None
-    assert country.alpha2_code == "KR"
-    assert errors == []
-
-
-def test_extract_korea_country_handles_v3_schema():
-    # restcountries v3 스키마: name이 {"common": ...} 객체, 코드가 cca2,
-    # capital이 리스트인 경우도 지원해야 한다.
-    raw = [
-        {"name": {"common": "Korea, Republic of", "official": "Republic of Korea"},
-         "cca2": "KR", "capital": ["Seoul"], "region": "Asia",
-         "population": 51780579, "area": 100210.0},
-    ]
     country, errors = extract_korea_country(raw)
     assert country is not None
     assert country.alpha2_code == "KR"
@@ -67,8 +34,21 @@ def test_extract_korea_country_handles_v3_schema():
     assert errors == []
 
 
-def test_extract_korea_country_unrecognized_top_level_type():
-    country, errors = extract_korea_country("not-a-list-or-dict")
+def test_extract_korea_country_invalid_population_raises_validation_error():
+    # population이 음수면 pydantic 검증에서 실패해야 한다.
+    raw = {
+        "name": "Korea (Republic of)", "capital": "Seoul", "region": "Asia",
+        "population": -1, "area": 100210, "alpha2Code": "KR",
+    }
+    country, errors = extract_korea_country(raw)
+    assert country is None
+    assert len(errors) == 1
+
+
+def test_extract_korea_country_unexpected_response_type():
+    # countries.dev가 배열이나 에러 문자열 등 dict가 아닌 응답을 주면
+    # 예외 없이 실패 사유를 기록해야 한다.
+    country, errors = extract_korea_country(["unexpected", "list"])
     assert country is None
     assert len(errors) == 1
 

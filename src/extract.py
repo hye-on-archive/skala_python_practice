@@ -40,74 +40,28 @@ def extract_weather_records(raw: dict[str, Any]) -> tuple[list[WeatherHourlyReco
     return valid, errors
 
 
-def _country_candidates(raw: Any) -> list[dict[str, Any]]:
-    """legacy.json의 최상위 컨테이너가 list든 dict든 국가 객체 리스트로 정규화한다.
+def extract_korea_country(raw: dict[str, Any]) -> tuple[CountryInfo | None, list[str]]:
+    """countries.dev의 단일 국가 조회 응답(/alpha/KOR)에서 대한민국 정보를 검증한다.
 
-    restcountries 계열 미러들은 배포 방식에 따라
-    - list[dict]  (예전 v2 API 원형)
-    - dict[str, dict]  (키가 국가코드/이름/인덱스인 객체로 감싼 변형)
-    두 형태를 모두 쓰는 경우가 있어 방어적으로 처리한다.
-    """
-    if isinstance(raw, list):
-        return [c for c in raw if isinstance(c, dict)]
-    if isinstance(raw, dict):
-        return [c for c in raw.values() if isinstance(c, dict)]
-    return []
-
-
-def _country_name(c: dict[str, Any]) -> str:
-    """v2 스키마(name: str)와 v3 스키마(name: {"common": str, ...}) 모두 지원."""
-    name = c.get("name")
-    if isinstance(name, dict):
-        return name.get("common") or name.get("official") or ""
-    return name or ""
-
-
-def _country_alpha2(c: dict[str, Any]) -> str:
-    """v2 스키마(alpha2Code)와 v3 스키마(cca2) 모두 지원."""
-    return c.get("alpha2Code") or c.get("cca2") or ""
-
-
-def extract_korea_country(raw: Any) -> tuple[CountryInfo | None, list[str]]:
-    """restcountries legacy.json에서 대한민국 레코드만 추출한다.
-
-    top-level 컨테이너 형태(list/dict)와 필드 스키마(v2/v3) 차이를
-    모두 방어적으로 처리한다. 자세한 내용은 _country_candidates 참고.
+    주의: restcountries.com v3.1은 서비스 종료, v5는 유료 API 키(무료 티어 월 500회 제한)가
+    필요해 무료 대체 API인 countries.dev/alpha/{code}를 사용한다. 이 엔드포인트는
+    "국가 리스트"가 아니라 조회한 나라 하나를 바로 반환하므로, 예전처럼 목록에서
+    KR을 검색하는 과정이 필요 없다.
     """
     errors: list[str] = []
-    candidates = _country_candidates(raw)
 
-    if not candidates:
-        errors.append(
-            f"국가 데이터 목록을 해석할 수 없습니다 (top-level type={type(raw).__name__})"
-        )
+    if not isinstance(raw, dict):
+        errors.append(f"예상치 못한 응답 타입입니다: {type(raw).__name__}")
         return None, errors
-
-    korea_raw = next(
-        (
-            c
-            for c in candidates
-            if _country_alpha2(c) == "KR"
-            or _country_name(c) in ("Korea (Republic of)", "South Korea", "Republic of Korea")
-        ),
-        None,
-    )
-    if korea_raw is None:
-        errors.append("대한민국(KR) 데이터를 찾을 수 없습니다")
-        return None, errors
-
-    capital = korea_raw.get("capital")
-    if isinstance(capital, list):  # v3 스키마는 capital이 리스트(["Seoul"])인 경우가 있다
-        capital = capital[0] if capital else None
 
     try:
         country = CountryInfo(
-            name=_country_name(korea_raw),
-            capital=capital,
-            region=korea_raw.get("region", ""),
-            population=korea_raw.get("population", 0),
-            area=korea_raw.get("area"),
-            alpha2_code=_country_alpha2(korea_raw),
+            name=raw.get("name", ""),
+            capital=raw.get("capital"),
+            region=raw.get("region", ""),
+            population=raw.get("population", 0),
+            area=raw.get("area"),
+            alpha2_code=raw.get("alpha2Code", ""),
         )
         return country, errors
     except ValidationError as exc:

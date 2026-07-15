@@ -19,7 +19,10 @@ OPEN_METEO_URL = (
     "&hourly=temperature_2m,precipitation_probability"
     "&forecast_days=3&timezone=Asia/Seoul"
 )
-RESTCOUNTRIES_URL = "https://files-03.restcountries.com/countries.00/legacy.json"
+# restcountries.com v3.1은 서비스 종료, v5는 유료 API 키(무료 티어 월 500회 제한)가 필요하다.
+# 동일한 데이터를 무료로 제공하는 대체 API(countries.dev)의 단일 국가 조회 엔드포인트를 사용한다.
+# 응답은 국가 리스트가 아니라 조회한 나라 하나(대한민국)를 바로 반환한다.
+RESTCOUNTRIES_URL = "https://countries.dev/alpha/KOR"
 # ip-api.com 무료(비회원) 티어는 HTTPS를 지원하지 않는다.
 # https://로 요청하면 403 Forbidden이 반환된다(Pro 계정만 HTTPS 가능).
 IP_API_URL = "http://ip-api.com/json/8.8.8.8"
