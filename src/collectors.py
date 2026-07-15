@@ -20,7 +20,9 @@ OPEN_METEO_URL = (
     "&forecast_days=3&timezone=Asia/Seoul"
 )
 RESTCOUNTRIES_URL = "https://files-03.restcountries.com/countries.00/legacy.json"
-IP_API_URL = "https://ip-api.com/json/8.8.8.8"
+# ip-api.com 무료(비회원) 티어는 HTTPS를 지원하지 않는다.
+# https://로 요청하면 403 Forbidden이 반환된다(Pro 계정만 HTTPS 가능).
+IP_API_URL = "http://ip-api.com/json/8.8.8.8"
 
 REQUEST_TIMEOUT = 15.0
 
