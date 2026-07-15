@@ -1,10 +1,21 @@
+# 가상환경
+.venv/
 venv/
+env/
+
+# 파이썬 캐시
 __pycache__/
 *.pyc
+
+# 테스트 / 린트 캐시
 .pytest_cache/
 .ruff_cache/
+
+# 실행 결과물 (재생성 가능하므로 추적 제외)
 data/*.csv
 data/*.parquet
 data/meta.json
 data/weather_large.*
+
+# OS
 .DS_Store
